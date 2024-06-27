@@ -14,6 +14,10 @@ Usage:
 ansible-playbook -i inventory ansible-kube-wp.yml
 
 Note: 
-Modify your /etc/hosts and add your server+ip 
-Modify your 'password' on ansible-docker-wp.yml 
+
+Modify your /etc/hosts and add your server+ip <br />
+Modify your 'password' on ansible-docker-wp.yml <br />
 Justify your Inventory Settings 
+
+Videos:
+https://youtu.be/QBFJQA2DWUQ
