@@ -5,7 +5,7 @@
     k8s_namespace: default
     mysql_database_name: wordpress
     mysql_user: wordpress
-    mysql_password: "CSC2024Team"
+    mysql_password: "changeme"
 
   tasks:
     - name: Install aptitude
