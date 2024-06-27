@@ -1,0 +1,2 @@
+[remote-host]
+server	ansible_connection=ssh	ansible_port=2022

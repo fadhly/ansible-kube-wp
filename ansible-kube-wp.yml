@@ -1,0 +1,164 @@
+- hosts: all
+  become: true
+
+  vars:
+    k8s_namespace: default
+    mysql_database_name: wordpress
+    mysql_user: wordpress
+    mysql_password: "CSC2024Team"
+
+  tasks:
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+          - python3-kubernetes
+        state: latest
+        update_cache: true
+
+    - name: Download K3s installation script
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s_install.sh
+        mode: '0755'
+
+    - name: Install K3s
+      command: /tmp/k3s_install.sh
+      environment:
+        INSTALL_K3S_EXEC: "--disable=traefik"
+      register: k3s_install
+
+    - name: Fetch kubeconfig from K3s server
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /tmp/k3s.yaml
+        flat: yes
+
+    - name: Copy kubeconfig to remote hosts
+      copy:
+        src: /tmp/k3s.yaml
+        dest: ~/.kube/config
+
+    - name: Check for Ready node
+      command: sudo k3s kubectl get node
+      environment:
+        KUBECONFIG: ~/.kube/config
+      register: k3s_node_status
+      until: "'Ready' in k3s_node_status.stdout"
+      retries: 6
+      delay: 5
+
+    - name: Disable swap
+      command: swapoff -a
+
+    - name: Deploy MySQL Deployment
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mysql
+            namespace: "{{ k8s_namespace }}"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: mysql
+            template:
+              metadata:
+                labels:
+                  app: mysql
+              spec:
+                containers:
+                - name: mysql
+                  image: mysql:5.7
+                  ports:
+                  - containerPort: 3306
+                  env:
+                  - name: MYSQL_DATABASE
+                    value: "{{ mysql_database_name }}"
+                  - name: MYSQL_USER
+                    value: "{{ mysql_user }}"
+                  - name: MYSQL_PASSWORD
+                    value: "{{ mysql_password }}"
+                  - name: MYSQL_ROOT_PASSWORD
+                    value: "{{ mysql_password }}"
+
+    - name: Create MySQL Service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: mysql
+            namespace: "{{ k8s_namespace }}"
+          spec:
+            selector:
+              app: mysql
+            ports:
+            - port: 3306
+              targetPort: 3306
+
+    - name: Deploy WordPress
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: wordpress
+            namespace: "{{ k8s_namespace }}"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: wordpress
+            template:
+              metadata:
+                labels:
+                  app: wordpress
+              spec:
+                containers:
+                - name: wordpress
+                  image: wordpress:latest
+                  env:
+                  - name: WORDPRESS_DB_HOST
+                    value: mysql
+                  - name: WORDPRESS_DB_USER
+                    value: root
+                  - name: WORDPRESS_DB_NAME
+                    value: wordpress
+                  - name: WORDPRESS_DB_PASSWORD
+                    value: "{{ mysql_password }}"
+                  ports:
+                  - containerPort: 80
+
+    - name: Expose WordPress as a LoadBalancer service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: wordpress
+            namespace: "{{ k8s_namespace }}"
+          spec:
+            type: LoadBalancer
+            ports:
+            - port: 80
+            selector:
+              app: wordpress
