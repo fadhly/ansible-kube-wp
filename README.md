@@ -11,9 +11,9 @@ Method:
 6. Access Remote Host with Browsers and Setup WP
 
 Usage:
-ansible-playboook -i inventory ansible-kube-wp.yml
+ansible-playbook -i inventory ansible-kube-wp.yml
 
-Note: <br />
-Modify your /etc/hosts and add your server+ip <br />
-Modify your 'password' on ansible-docker-wp.yml <br />
-Justify your Inventory Settings <br />
+Note: 
+Modify your /etc/hosts and add your server+ip 
+Modify your 'password' on ansible-docker-wp.yml 
+Justify your Inventory Settings 
