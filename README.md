@@ -13,7 +13,7 @@ Method:
 Usage:
 ansible-playboook -i inventory ansible-kube-wp.yml
 
-Note:
-Modify your /etc/hosts and add your server+ip
-Modify your 'password' on ansible-docker-wp.yml
-Justify your Inventory Settings
+Note: <br />
+Modify your /etc/hosts and add your server+ip <br />
+Modify your 'password' on ansible-docker-wp.yml <br />
+Justify your Inventory Settings <br />
